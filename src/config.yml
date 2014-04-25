@@ -1,0 +1,6 @@
+config:
+  hostname: localhost
+  portnmbr: 3306
+  database: db
+  username: root
+  password: root

@@ -1,0 +1,29 @@
+authors: [xllluzionx, justinj10000]
+database: false
+description: Automatically promote players after they register online and when they've been on the server long enough for a rank increase.
+main: co.arkfall.play.ArkSync
+name: ArkSync
+startup: postworld
+url: http://www.Arkfall.co
+version: 2.1.0
+
+commands:
+  arkrank:
+    description: Displays rank as well as time since registering
+    usage: "usage: /arkrank [player]"
+  arkrankset:
+    description: Sets the register date of a player
+    permission: arksync.arkrankset
+    #usage: /arkrankset <player> <yyyy-MM-dd>
+  updaterank:
+    description: Checks if your rank should be updated. Performed on login
+  register:
+    description: creates account on the website
+    
+permissions:
+  arksync.arkrankset:
+    default: op
+  arksync.arkrankothers:
+    default: op
+  arksync.updaterankothers:
+    default: op
