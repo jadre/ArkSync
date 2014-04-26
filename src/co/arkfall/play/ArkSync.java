@@ -30,8 +30,8 @@ public class ArkSync extends JavaPlugin implements Listener {
 	private static final int[] rankTimes = {0,0,1,3,6,12};
 	public static Permission perms = null;
 	private static MySQL db;
-	private static Connection con;
-	private static Logger log;
+	private Connection con;
+	private Logger log;
 
 	public void onDisable() {
 		try {
@@ -52,14 +52,13 @@ public class ArkSync extends JavaPlugin implements Listener {
 			log.severe("connection to db is null, plugin probably won't work"); 
 		}
 
-		fillUUIDs(); Connection con;
-
+		fillUUIDs(false);
 		getServer().getPluginManager().registerEvents(this, this);
 
 		setupPermissions();
 	}
 
-	private static void fillUUIDs() {
+	private void fillUUIDs(boolean silent) {
 		// TODO Auto-generated method stub
 		try {
 			ResultSet res = con.createStatement().executeQuery("SELECT `user_nicename` FROM (`wp_users` LEFT JOIN `UUIDs` ON `wp_users`.`ID`=`UUIDs`.`user_ID`) WHERE `UUID` IS NULL");
@@ -68,7 +67,8 @@ public class ArkSync extends JavaPlugin implements Listener {
 				@SuppressWarnings("deprecation")
 				UUID uuid = Bukkit.getOfflinePlayer(res.getString(1)).getUniqueId();
 				if (uuid == null) {
-					//Something went wrong with registration
+					if (!silent)
+						log.warning("Player \"" + res.getString(1) + "\" in database does not exist in Mojang servers. Ignoring.");
 					continue;
 				}
 				updateUUID(res.getString(1));
@@ -79,7 +79,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		}
 	}
 	
-	private static void updateUUID(String player) throws SQLException {
+	private void updateUUID(String player) throws SQLException {
 		con.createStatement().execute("INSERT INTO `UUIDs` (`user_ID`, `UUID`) SELECT `ID`, '" + UUIDtoString(Bukkit.getOfflinePlayer(player).getUniqueId()) + "' FROM `wp_users` WHERE `user_nicename`='" + player + "'");
 	}
 	
@@ -121,7 +121,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		updateRank(player);
 	}
 
-	private static boolean updateRank(Player player) {
+	private boolean updateRank(Player player) {
 		boolean returnV = false;
 		if (getRank(player, false).equals("Default")) {
 			returnV = register(player);
@@ -172,7 +172,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		return rank;
 	}
 
-	private static String getFormattedTimeOnServer(Player player) {
+	private String getFormattedTimeOnServer(Player player) {
 		Date date;
 		try {
 			date = parseDate(getRegistrationDate(player));
@@ -256,7 +256,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		return (int)(difference / (1000 * 3600 * 24 * 30.4375 * 12));
 	}
 
-	private static String getTimeToNextRank(Player player) throws SQLException {
+	private String getTimeToNextRank(Player player) throws SQLException {
 		int rank = rankLookup(getRank(player, true));
 		if (rank > 0 && rank < 5) {
 			long seconds = getSeconds(parseDate(getRegistrationDate(player)));
@@ -294,7 +294,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		return dateFormat.format(date);
 	}
 
-	private static String getRegistrationDate(Player player) throws SQLException {
+	private String getRegistrationDate(Player player) throws SQLException {
 		if(!db.checkConnection() || con == null || !con.isValid(5)) {
 			con = db.open();
 			if(con==null) {
@@ -304,7 +304,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		}
 		Statement s = con.createStatement();
 		try {
-			ResultSet res = s.executeQuery("SELECT user_registered FROM `wp_users` WHERE `UUID` = '" + UUIDtoString(player.getUniqueId()) + "'");
+			ResultSet res = getUserByUUID(player.getUniqueId());
 			if(res.next()) {
 				return res.getString("user_registered");
 			}
@@ -331,7 +331,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		return perms != null;
 	}
 
-	private static boolean register(Player player) {
+	private boolean register(Player player) {
 		try {
 			boolean hasRegistered = userRegistered(player);
 			if(!hasRegistered) {
@@ -525,7 +525,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 		return uuid.toString().replace("-", "");
 	}
 
-	private static boolean userRegistered(Player player) throws SQLException {
+	private boolean userRegistered(Player player) throws SQLException {
 		if(!db.checkConnection() || con == null || !con.isValid(5)) {
 			con = db.open();
 			if(con==null) {
@@ -534,7 +534,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 			}
 		}
 		Statement s = con.createStatement();
-		ResultSet res = s.executeQuery("SELECT * FROM `wp_users` WHERE `ID` IN (SELECT `user_ID` FROM `UUIDs` WHERE `UUID`='" + UUIDtoString(player.getUniqueId()) + "')");
+		ResultSet res = getUserByUUID(player.getUniqueId());
 		boolean returnV;
 		if(res.next()) {
 			returnV = true;
@@ -556,11 +556,11 @@ public class ArkSync extends JavaPlugin implements Listener {
 			}
 		}
 		Statement s = con.createStatement();
-		s.execute("UPDATE `wp_users` SET `user_registered` = '" + encodeDate(date) + "' WHERE `UUID` = '" + UUIDtoString(player.getUniqueId()) + "'");
+		s.execute("UPDATE `wp_users` SET `user_registered` = '" + encodeDate(date) + "' WHERE `ID` IN (SELECT `userID` FROM `UUIDs` WHERE `UUID`='" + UUIDtoString(player.getUniqueId()) + "')");
 		return false;
 	}
 
-	private static boolean setGroup(String groupName, Player player, boolean n)
+	private boolean setGroup(String groupName, Player player, boolean n)
 	{
 		try
 		{
