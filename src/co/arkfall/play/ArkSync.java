@@ -82,6 +82,10 @@ public class ArkSync extends JavaPlugin implements Listener {
 	private static void updateUUID(String player) throws SQLException {
 		con.createStatement().execute("INSERT INTO `UUIDs` (`user_ID`, `UUID`) SELECT `ID`, '" + UUIDtoString(Bukkit.getOfflinePlayer(player).getUniqueId()) + "' FROM `wp_users` WHERE `user_nicename`='" + player + "'");
 	}
+	
+	private ResultSet getUserByUUID(UUID uuid) throws SQLException {
+		return con.createStatement().executeQuery("SELECT * FROM (`wp_users` LEFT JOIN `UUIDs` ON `wp_users`.`ID`=`UUIDs`.`userID`)");
+	}
 
 	/*private static String registerPlayer(Player player, String email) throws SQLException {
 		Statement s = con.createStatement();
@@ -157,7 +161,7 @@ public class ArkSync extends JavaPlugin implements Listener {
 	}
 
 	private static boolean validateEmail(String email) {
-		return email.matches("[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+(?:[A-Z]{2}|com|org|net|edu|gov|mil|biz|info|mobi|name|aero|asia|jobs|museum)");
+		return email.matches("[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\\.)+(?:[A-Za-z]{2}|com|org|net|edu|gov|mil|biz|info|mobi|name|aero|asia|jobs|museum)");
 	}
 
 	private static String getRank(Player player, boolean chopOffPlus) {
